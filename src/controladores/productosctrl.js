@@ -74,9 +74,10 @@ export const putProducto = async (req, res) => {
     try {
         const { id } = req.params;
         const { prod_codigo, prod_nombre, prod_stock, prod_precio } = req.body;
-    
+
         const stockConvertido = prod_stock !== undefined ? parseInt(prod_stock) : null;
         const precioConvertido = prod_precio !== undefined ? parseFloat(prod_precio) : null;
+
 
         const prod_imagen = req.file ? req.file.filename : null;
 
