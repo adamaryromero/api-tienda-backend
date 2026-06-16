@@ -35,21 +35,38 @@ export const putProducto = async (req, res) => {
     try {
         const { id } = req.params;
         const { prod_codigo, prod_nombre, prod_stock, prod_precio } = req.body;
+        
         const stockConvertido = prod_stock !== undefined ? parseInt(prod_stock) : null;
         const precioConvertido = prod_precio !== undefined ? parseFloat(prod_precio) : null;
 
+        const prod_imagen = req.file ? req.file.filename : null;
+
         const [result] = await conmysql.query(
-            'UPDATE productos SET prod_codigo=?, prod_nombre=?, prod_stock=?, prod_precio=? WHERE prod_id=?',
-            [prod_codigo ?? null, prod_nombre ?? null, stockConvertido, precioConvertido, id]
+            `UPDATE productos SET 
+                prod_codigo = IFNULL(?, prod_codigo), 
+                prod_nombre = IFNULL(?, prod_nombre), 
+                prod_stock = IFNULL(?, prod_stock), 
+                prod_precio = IFNULL(?, prod_precio),
+                prod_imagen = IFNULL(?, prod_imagen)
+            WHERE prod_id = ?`,
+            [
+                prod_codigo ?? null, 
+                prod_nombre ?? null, 
+                stockConvertido, 
+                precioConvertido, 
+                prod_imagen, 
+                id
+            ]
         );
 
         if (result.affectedRows === 0 && !result.info.includes("Rows matched: 1")) {
              return res.status(404).json({ message: "Producto no encontrado en la base de datos" });
         }
-        res.json({ message: 'producto modificado' });
+        
+        res.json({ message: 'Producto actualizado con éxito' });
     } catch (error) {
         console.error("Error al editar producto en MySQL:", error);
-        return res.status(500).json({ message: "error en el servidor" });
+        return res.status(500).json({ message: "Error en el servidor al actualizar el producto" });
     }
 };
 
