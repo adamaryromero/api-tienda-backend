@@ -2,16 +2,22 @@ import { Router } from 'express';
 import { getProductos, postProducto, putProducto, deleteProducto } from '../controladores/productosctrl.js';
 import { verificarToken } from '../middlewares/auth.js';
 import multer from 'multer';
-import path from 'path';
+//import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename: function (req, file, cb) {
-        const nombreUnico = Date.now() + path.extname(file.originalname);
-        cb(null, nombreUnico);
-    }
+cloudinary.config({
+  cloud_name: 'deeebt81k', 
+  api_key: '816345526847518',       
+  api_secret: '5DWxsWHPAw3DrT_YqYSeAKCm50IT'  
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'tiendaproductos', 
+    allowedFormats: ['jpg', 'png', 'jpeg', 'webp']
+  },
 });
 
 const upload = multer({ storage: storage });

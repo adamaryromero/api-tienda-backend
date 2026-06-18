@@ -17,7 +17,7 @@ export const postProducto = async (req, res) => {
         const stockConvertido = prod_stock ? parseInt(prod_stock) : 0;
         const precioConvertido = prod_precio ? parseFloat(prod_precio) : 0.00;
         
-        const prod_imagen = req.file ? req.file.filename : null;
+        const prod_imagen = req.file ? req.file.path : null;
 
         const [result] = await conmysql.query(
             'INSERT INTO productos (prod_codigo, prod_nombre, prod_stock, prod_precio, prod_imagen) VALUES (?,?,?,?,?)',
@@ -40,7 +40,7 @@ export const putProducto = async (req, res) => {
         const precioConvertido = prod_precio !== undefined ? parseFloat(prod_precio) : null;
 
 
-        const prod_imagen = req.file ? req.file.filename : null;
+        const prod_imagen = req.file ? req.file.path : null;
 
         const [result] = await conmysql.query(
             `UPDATE productos SET 
