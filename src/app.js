@@ -26,5 +26,14 @@ app.use((req,res,next)=>{
         message:'Endpoint not found'
     })
 })
+
+app.use((err, req, res, next) => {
+    console.error("ERROR REAL DEL SERVIDOR:", err.message || err);
+    
+    res.status(500).json({
+        message: "error en el servidor",
+        detalle: err.message || "Error desconocido en la nube"
+    });
+});
 export default app;
 
