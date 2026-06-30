@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors';
 import clientesRoutes from './routes/clientes.routes.js'
 import productosRoutes from './routes/productos.routes.js';
-import pedidosRoutes from "./routes/pedidos.routes.js";
+import pedidosRoutes from './routes/pedidos.routes.js';
 
 const app=express();
 const corsOptions={

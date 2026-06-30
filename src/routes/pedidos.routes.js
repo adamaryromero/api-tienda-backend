@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { guardarPedido, getPedidos } from "./pedidosctrl.js";
+import { guardarPedido, getPedidos } from "./controladores/pedidosctrl.js";
 
 const router = Router();
 
