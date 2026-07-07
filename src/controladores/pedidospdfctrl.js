@@ -26,7 +26,6 @@ export const generarPDFPedido = async (req, res) => {
             WHERE d.ped_id = ?`, [id]
         );
 
-        // Crear el PDF
         const doc = new PDFDocument({ 
             size: 'A4', 
             margin: 50,
@@ -42,36 +41,29 @@ export const generarPDFPedido = async (req, res) => {
 
         // === COLORES ===
         const colors = {
-            primary: '#4776c7',      // Azul principal
-            primaryLight: '#8fb4e5', // Azul claro
-            text: '#1a1a2e',         // Texto principal
-            textLight: '#6b7280',    // Texto secundario
-            border: '#d1d5db',       // Bordes
-            background: '#f9fafb',   // Fondo de cajas
+            primary: '#4776c7',
+            primaryLight: '#8fb4e5',
+            text: '#1a1a2e',
+            textLight: '#6b7280',
+            border: '#d1d5db',
+            background: '#f9fafb',
             white: '#ffffff'
         };
 
         // === HEADER ===
-        // Barra superior azul
-        doc.rect(50, 40, 495, 4)
-           .fill(colors.primary);
-        
-        doc.rect(50, 44, 495, 2)
-           .fill(colors.primaryLight);
+        doc.rect(50, 40, 495, 4).fill(colors.primary);
+        doc.rect(50, 44, 495, 2).fill(colors.primaryLight);
 
-        // Título "FACTURA"
         doc.fontSize(24)
            .font('Helvetica-Bold')
            .fillColor(colors.primary)
            .text('FACTURA', 50, 60, { align: 'left' });
         
-        // Subtítulo "DE PEDIDO"
         doc.fontSize(16)
            .font('Helvetica')
            .fillColor(colors.textLight)
            .text('DE PEDIDO', 50, 88, { align: 'left' });
 
-        // Número de pedido y fecha (derecha)
         doc.fontSize(14)
            .font('Helvetica-Bold')
            .fillColor(colors.text)
@@ -88,7 +80,6 @@ export const generarPDFPedido = async (req, res) => {
                minute: '2-digit'
            })}`, 450, 78, { align: 'right' });
 
-        // Línea separadora
         doc.moveTo(50, 115)
            .lineTo(550, 115)
            .strokeColor(colors.border)
@@ -103,7 +94,6 @@ export const generarPDFPedido = async (req, res) => {
            .fillColor(colors.text)
            .text('INFORMACIÓN DEL CLIENTE', 50, 150);
         
-        // Caja de información con borde
         const boxY = 160;
         doc.rect(50, boxY, 495, 100)
            .fillColor(colors.background)
@@ -112,12 +102,10 @@ export const generarPDFPedido = async (req, res) => {
            .lineWidth(1)
            .stroke();
 
-        // Datos en dos columnas
         const col1 = 70;
         const col2 = 300;
         const startY = boxY + 20;
 
-        // Fila 1: NOMBRE
         doc.fontSize(10)
            .font('Helvetica-Bold')
            .fillColor(colors.textLight)
@@ -133,7 +121,6 @@ export const generarPDFPedido = async (req, res) => {
            .fillColor(colors.text)
            .text(pedido[0].cli_identificacion, col2, startY + 14);
 
-        // Fila 2: TELÉFONO
         doc.font('Helvetica-Bold')
            .fillColor(colors.textLight)
            .text('TELÉFONO', col1, startY + 40);
@@ -148,7 +135,6 @@ export const generarPDFPedido = async (req, res) => {
            .fillColor(colors.text)
            .text(pedido[0].cli_correo || 'No registrado', col2, startY + 54);
 
-        // Fila 3: DIRECCIÓN
         doc.font('Helvetica-Bold')
            .fillColor(colors.textLight)
            .text('DIRECCIÓN', col1, startY + 80);
@@ -166,17 +152,17 @@ export const generarPDFPedido = async (req, res) => {
 
         doc.moveDown(0.5);
 
-        // Tabla
+        // Tabla - Columnas ajustadas
         const tableTop = doc.y;
         const colPositions = {
             code: 50,
-            name: 130,
-            qty: 370,
-            price: 440,
-            subtotal: 490
+            name: 140,      // Aumentado de 130 a 140
+            qty: 350,       // Reducido de 370 a 350
+            price: 420,     // Reducido de 440 a 420
+            subtotal: 490   // Mantenido igual
         };
 
-        // Encabezados de tabla (fondo azul)
+        // Encabezados de tabla
         doc.rect(50, tableTop, 495, 25)
            .fillColor(colors.primary)
            .fill();
@@ -185,9 +171,9 @@ export const generarPDFPedido = async (req, res) => {
            .font('Helvetica-Bold')
            .fillColor(colors.white)
            .text('CÓDIGO', colPositions.code, tableTop + 6, { width: 80, align: 'left' })
-           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 220, align: 'left' })
+           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 190, align: 'left' })
            .text('CANT.', colPositions.qty, tableTop + 6, { width: 50, align: 'center' })
-           .text('PRECIO', colPositions.price, tableTop + 6, { width: 50, align: 'right' })
+           .text('PRECIO', colPositions.price, tableTop + 6, { width: 60, align: 'right' })
            .text('SUBTOTAL', colPositions.subtotal, tableTop + 6, { width: 70, align: 'right' });
 
         // Filas de productos
@@ -205,7 +191,6 @@ export const generarPDFPedido = async (req, res) => {
                 const subtotal = precio * cantidad;
                 total += subtotal;
 
-                // Color alternado para filas
                 if (index % 2 === 0) {
                     doc.rect(50, currentY, 495, 22)
                        .fillColor(colors.background)
@@ -213,17 +198,17 @@ export const generarPDFPedido = async (req, res) => {
                 }
 
                 const nombreProducto = item.prod_nombre || 'Producto';
-                const nombreTruncado = nombreProducto.length > 35 ? 
-                    nombreProducto.substring(0, 32) + '...' : 
+                const nombreTruncado = nombreProducto.length > 30 ? 
+                    nombreProducto.substring(0, 27) + '...' : 
                     nombreProducto;
 
                 doc.fontSize(9)
                    .font('Helvetica')
                    .fillColor(colors.text)
                    .text(item.prod_codigo || '-', colPositions.code, currentY + 4, { width: 80, align: 'left' })
-                   .text(nombreTruncado, colPositions.name, currentY + 4, { width: 220, align: 'left' })
+                   .text(nombreTruncado, colPositions.name, currentY + 4, { width: 190, align: 'left' })
                    .text(cantidad.toString(), colPositions.qty, currentY + 4, { width: 50, align: 'center' })
-                   .text(`$${precio.toFixed(2)}`, colPositions.price, currentY + 4, { width: 50, align: 'right' })
+                   .text(`$${precio.toFixed(2)}`, colPositions.price, currentY + 4, { width: 60, align: 'right' })
                    .text(`$${subtotal.toFixed(2)}`, colPositions.subtotal, currentY + 4, { width: 70, align: 'right' });
 
                 currentY += 22;
@@ -238,7 +223,6 @@ export const generarPDFPedido = async (req, res) => {
         doc.moveDown(1);
 
         // === TOTAL ===
-        // Caja de total (azul)
         const totalY = doc.y + 5;
         doc.rect(380, totalY, 165, 50)
            .fillColor(colors.primary)
@@ -256,7 +240,6 @@ export const generarPDFPedido = async (req, res) => {
         doc.moveDown(4);
 
         // === FOOTER ===
-        // Línea decorativa
         doc.rect(50, doc.y, 495, 1)
            .fillColor(colors.border)
            .fill();
@@ -269,17 +252,7 @@ export const generarPDFPedido = async (req, res) => {
            .text('Gracias por su compra', 50, doc.y, { align: 'center' })
            .text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, 50, doc.y + 14, { align: 'center' });
 
-        // Número de página
-        const pageCount = doc.bufferedPageRange().count || 1;
-        doc.fontSize(8)
-           .font('Helvetica')
-           .fillColor(colors.textLight)
-           .text(
-               `Página ${doc.page} de ${pageCount}`,
-               50,
-               doc.page.height - 50,
-               { align: 'center' }
-           );
+        // ✅ ELIMINADO: Número de página
 
         doc.end();
 
