@@ -153,12 +153,13 @@ export const generarPDFPedido = async (req, res) => {
         doc.moveDown(0.5);
 
         const tableTop = doc.y;
+        const paddingIzquierdo = 20; 
         const colPositions = {
-            code: 30,       
-            name: 90,        
-            qty: 290,        
-            price: 330,      
-            subtotal: 400    
+            code: 30 + paddingIzquierdo,    
+            name: 90 + paddingIzquierdo,   
+            qty: 290 + paddingIzquierdo,    
+            price: 330 + paddingIzquierdo,  
+            subtotal: 400 + paddingIzquierdo 
         };
 
         // Encabezados de tabla
@@ -170,10 +171,10 @@ export const generarPDFPedido = async (req, res) => {
            .font('Helvetica-Bold')
            .fillColor(colors.white)
            .text('CÓDIGO', colPositions.code, tableTop + 6, { width: 50, align: 'left' })
-           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 190, align: 'left' })
+           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 180, align: 'left' })
            .text('CANT.', colPositions.qty, tableTop + 6, { width: 30, align: 'center' })
            .text('PRECIO', colPositions.price, tableTop + 6, { width: 60, align: 'right' })
-           .text('SUBTOTAL', colPositions.subtotal, tableTop + 6, { width: 80, align: 'right' });
+           .text('SUBTOTAL', colPositions.subtotal, tableTop + 6, { width: 70, align: 'right' });
 
         // Filas de productos
         let total = 0;
@@ -182,7 +183,7 @@ export const generarPDFPedido = async (req, res) => {
         if (detalle.length === 0) {
             doc.font('Helvetica')
                .fillColor(colors.textLight)
-               .text('No hay productos en este pedido', 50, currentY + 10);
+               .text('No hay productos en este pedido', 50 + paddingIzquierdo, currentY + 10);
         } else {
             detalle.forEach((item, index) => {
                 const precio = Number(item.det_precio) || 0;
@@ -205,10 +206,10 @@ export const generarPDFPedido = async (req, res) => {
                    .font('Helvetica')
                    .fillColor(colors.text)
                    .text(item.prod_codigo || '-', colPositions.code, currentY + 4, { width: 50, align: 'left' })
-                   .text(nombreTruncado, colPositions.name, currentY + 4, { width: 190, align: 'left' })
+                   .text(nombreTruncado, colPositions.name, currentY + 4, { width: 180, align: 'left' })
                    .text(cantidad.toString(), colPositions.qty, currentY + 4, { width: 30, align: 'center' })
                    .text(`$${precio.toFixed(2)}`, colPositions.price, currentY + 4, { width: 60, align: 'right' })
-                   .text(`$${subtotal.toFixed(2)}`, colPositions.subtotal, currentY + 4, { width: 80, align: 'right' });
+                   .text(`$${subtotal.toFixed(2)}`, colPositions.subtotal, currentY + 4, { width: 70, align: 'right' });
 
                 currentY += 22;
             });
