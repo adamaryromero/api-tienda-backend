@@ -1,12 +1,4 @@
 import { conmysql } from "../db.js";
-import { sendPushNotification } from "../config/firebase.js";
-
-const getAdminTokens = async () => {
-  const [tokens] = await conmysql.query(
-    'SELECT fcm_token FROM usuarios WHERE usr_activo = 1 AND fcm_token IS NOT NULL'
-  );
-  return tokens.map(t => t.fcm_token);
-};
 
 export const postPedidos = async (req, res) => {
     const conexion = await conmysql.getConnection();
@@ -57,27 +49,6 @@ export const postPedidos = async (req, res) => {
         }
 
         await conexion.commit();
-
-        try {
-            const adminTokens = await getAdminTokens();
-            const clientName = cli_nombre || 'Cliente';
-            
-            const notificacionTitle = `Nuevo Pedido #${ped_id}`;
-            const notificacionBody = `${clientName} ha realizado un pedido. Revisa el detalle.`;
-            
-            for (const token of adminTokens) {
-                await sendPushNotification(
-                    token,
-                    notificacionTitle,
-                    notificacionBody,
-                    { pedido_id: ped_id.toString(), type: 'nuevo_pedido' }
-                );
-            }
-            console.log(`Notificaciones enviadas para pedido #${ped_id}`);
-        } catch (pushError) {
-            console.error('Error al enviar notificaciones:', pushError);
-        }
-
         res.status(201).json({ ok: true, mensaje: "Pedido registrado correctamente.", ped_id, cli_id: idCliente });
 
     } catch (error) {
