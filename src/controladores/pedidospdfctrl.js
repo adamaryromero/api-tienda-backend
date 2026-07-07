@@ -144,7 +144,7 @@ export const generarPDFPedido = async (req, res) => {
 
         doc.moveDown(2);
 
-        // === DETALLE DE PRODUCTOS ===
+         // === DETALLE DE PRODUCTOS ===
         doc.fontSize(11)
            .font('Helvetica-Bold')
            .fillColor(colors.text)
@@ -152,14 +152,13 @@ export const generarPDFPedido = async (req, res) => {
 
         doc.moveDown(0.5);
 
-        // Tabla - Columnas ajustadas
         const tableTop = doc.y;
         const colPositions = {
-            code: 50,
-            name: 140,      // Aumentado de 130 a 140
-            qty: 350,       // Reducido de 370 a 350
-            price: 420,     // Reducido de 440 a 420
-            subtotal: 490   // Mantenido igual
+            code: 30,        
+            name: 120,      
+            qty: 290,       
+            price: 370,      
+            subtotal: 450    
         };
 
         // Encabezados de tabla
@@ -170,11 +169,11 @@ export const generarPDFPedido = async (req, res) => {
         doc.fontSize(9)
            .font('Helvetica-Bold')
            .fillColor(colors.white)
-           .text('CÓDIGO', colPositions.code, tableTop + 6, { width: 80, align: 'left' })
-           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 190, align: 'left' })
+           .text('CÓDIGO', colPositions.code, tableTop + 6, { width: 70, align: 'left' })
+           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 150, align: 'left' })
            .text('CANT.', colPositions.qty, tableTop + 6, { width: 50, align: 'center' })
            .text('PRECIO', colPositions.price, tableTop + 6, { width: 60, align: 'right' })
-           .text('SUBTOTAL', colPositions.subtotal, tableTop + 6, { width: 70, align: 'right' });
+           .text('SUBTOTAL', colPositions.subtotal, tableTop + 6, { width: 80, align: 'right' });
 
         // Filas de productos
         let total = 0;
@@ -198,18 +197,18 @@ export const generarPDFPedido = async (req, res) => {
                 }
 
                 const nombreProducto = item.prod_nombre || 'Producto';
-                const nombreTruncado = nombreProducto.length > 30 ? 
-                    nombreProducto.substring(0, 27) + '...' : 
+                const nombreTruncado = nombreProducto.length > 25 ? 
+                    nombreProducto.substring(0, 22) + '...' : 
                     nombreProducto;
 
                 doc.fontSize(9)
                    .font('Helvetica')
                    .fillColor(colors.text)
-                   .text(item.prod_codigo || '-', colPositions.code, currentY + 4, { width: 80, align: 'left' })
-                   .text(nombreTruncado, colPositions.name, currentY + 4, { width: 190, align: 'left' })
+                   .text(item.prod_codigo || '-', colPositions.code, currentY + 4, { width: 70, align: 'left' })
+                   .text(nombreTruncado, colPositions.name, currentY + 4, { width: 150, align: 'left' })
                    .text(cantidad.toString(), colPositions.qty, currentY + 4, { width: 50, align: 'center' })
                    .text(`$${precio.toFixed(2)}`, colPositions.price, currentY + 4, { width: 60, align: 'right' })
-                   .text(`$${subtotal.toFixed(2)}`, colPositions.subtotal, currentY + 4, { width: 70, align: 'right' });
+                   .text(`$${subtotal.toFixed(2)}`, colPositions.subtotal, currentY + 4, { width: 80, align: 'right' });
 
                 currentY += 22;
             });
