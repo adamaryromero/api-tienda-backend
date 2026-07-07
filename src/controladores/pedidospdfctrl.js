@@ -153,7 +153,7 @@ export const generarPDFPedido = async (req, res) => {
         doc.moveDown(0.5);
 
         const tableTop = doc.y;
-        const paddingIzquierdo = 20; 
+        const paddingIzquierdo = 30; 
         const colPositions = {
             code: 30 + paddingIzquierdo,    
             name: 90 + paddingIzquierdo,   
@@ -250,7 +250,7 @@ export const generarPDFPedido = async (req, res) => {
            .font('Helvetica')
            .fillColor(colors.textLight)
            .text('Gracias por su compra', 50, doc.y, { align: 'center' })
-           .text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, 50, doc.y + 14, { align: 'center' });
+           .text(`Documento generado el ${new Date()}`, 50, doc.y + 14, { align: 'center' });
 
         doc.end();
 
