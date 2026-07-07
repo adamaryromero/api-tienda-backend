@@ -26,7 +26,6 @@ export const generarPDFPedido = async (req, res) => {
             WHERE d.ped_id = ?`, [id]
         );
 
-        // Crear el PDF con mejor diseño
         const doc = new PDFDocument({ 
             size: 'A4', 
             margin: 50,
@@ -42,12 +41,12 @@ export const generarPDFPedido = async (req, res) => {
 
         // === COLORES ===
         const colors = {
-            primary: '#1a73e8',      // Azul principal
+            primary: '#8fb4e5',      // Azul principal
             secondary: '#34d399',    // Verde
-            dark: '#1a1a2e',         // Fondo oscuro
+            dark: '#4776c7',         // Fondo oscuro
             light: '#f8f9fa',        // Fondo claro
             text: '#2d2d2d',         // Texto principal
-            textLight: '#6b7280',    // Texto secundario
+            textLight: '#4e5d7a',    // Texto secundario
             border: '#e5e7eb',       // Bordes
             accent: '#60a5fa'        // Acento
         };
@@ -62,23 +61,23 @@ export const generarPDFPedido = async (req, res) => {
 
         // Título principal
         doc.fontSize(24)
-           .font('Helvetica-Bold')
+           .font('Poppins-Bold')
            .fillColor(colors.primary)
            .text('FACTURA', 50, 60, { align: 'left' });
         
         doc.fontSize(16)
-           .font('Helvetica')
+           .font('Poppins')
            .fillColor(colors.textLight)
            .text('DE PEDIDO', 50, 88, { align: 'left' });
 
         // Número de pedido a la derecha
         doc.fontSize(14)
-           .font('Helvetica-Bold')
+           .font('Poppins-Bold')
            .fillColor(colors.dark)
            .text(`#${pedido[0].ped_id}`, 450, 60, { align: 'right' });
         
         doc.fontSize(10)
-           .font('Helvetica')
+           .font('Poppins')
            .fillColor(colors.textLight)
            .text(`Fecha: ${new Date(pedido[0].ped_fecha).toLocaleDateString('es-ES', {
                year: 'numeric',
@@ -97,21 +96,10 @@ export const generarPDFPedido = async (req, res) => {
 
         doc.moveDown(1);
 
-        // === ESTADO DEL PEDIDO ===
-        const estadoText = pedido[0].ped_estado === 1 ? 'COMPLETADO' : 'CANCELADO';
-        const estadoColor = pedido[0].ped_estado === 1 ? colors.secondary : '#ef4444';
-        
-        doc.fontSize(10)
-           .font('Helvetica')
-           .fillColor(estadoColor)
-           .text(`● ${estadoText}`, 50, 130, { align: 'left' });
-
-        doc.moveDown(1.5);
-
         // === INFORMACIÓN DEL CLIENTE ===
         // Título sección
         doc.fontSize(11)
-           .font('Helvetica-Bold')
+           .font('Poppins-Bold')
            .fillColor(colors.text)
            .text('INFORMACIÓN DEL CLIENTE', 50, 150);
         
@@ -130,38 +118,38 @@ export const generarPDFPedido = async (req, res) => {
         const startY = boxY + 20;
 
         doc.fontSize(10)
-           .font('Helvetica-Bold')
+           .font('Poppins-Bold')
            .fillColor(colors.textLight)
            .text('NOMBRE', col1, startY);
         doc.font('Helvetica')
            .fillColor(colors.text)
            .text(pedido[0].cli_nombre, col1, startY + 14);
 
-        doc.font('Helvetica-Bold')
+        doc.font('Poppins-Bold')
            .fillColor(colors.textLight)
            .text('IDENTIFICACIÓN', col2, startY);
-        doc.font('Helvetica')
+        doc.font('Poppins')
            .fillColor(colors.text)
            .text(pedido[0].cli_identificacion, col2, startY + 14);
 
         doc.font('Helvetica-Bold')
            .fillColor(colors.textLight)
            .text('TELÉFONO', col1, startY + 40);
-        doc.font('Helvetica')
+        doc.font('Poppins')
            .fillColor(colors.text)
            .text(pedido[0].cli_telefono || 'No registrado', col1, startY + 54);
 
-        doc.font('Helvetica-Bold')
+        doc.font('Poppins-Bold')
            .fillColor(colors.textLight)
            .text('CORREO', col2, startY + 40);
-        doc.font('Helvetica')
+        doc.font('Poppins')
            .fillColor(colors.text)
            .text(pedido[0].cli_correo || 'No registrado', col2, startY + 54);
 
-        doc.font('Helvetica-Bold')
+        doc.font('Poppins-Bold')
            .fillColor(colors.textLight)
            .text('DIRECCIÓN', col1, startY + 80);
-        doc.font('Helvetica')
+        doc.font('Poppins')
            .fillColor(colors.text)
            .text(pedido[0].cli_direccion || 'No registrada', col1, startY + 94);
 
@@ -169,7 +157,7 @@ export const generarPDFPedido = async (req, res) => {
 
         // === DETALLE DE PRODUCTOS ===
         doc.fontSize(11)
-           .font('Helvetica-Bold')
+           .font('Poppins-Bold')
            .fillColor(colors.text)
            .text('DETALLE DE PRODUCTOS', 50, doc.y);
 
@@ -191,10 +179,10 @@ export const generarPDFPedido = async (req, res) => {
            .fill();
 
         doc.fontSize(9)
-           .font('Helvetica-Bold')
+           .font('Poppins-Bold')
            .fillColor('#ffffff')
            .text('CÓDIGO', colPositions.code, tableTop + 6, { width: 80, align: 'left' })
-           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 240, align: 'left' })
+           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 220, align: 'left' })
            .text('CANT.', colPositions.qty, tableTop + 6, { width: 50, align: 'center' })
            .text('PRECIO', colPositions.price, tableTop + 6, { width: 70, align: 'right' })
            .text('SUBTOTAL', colPositions.subtotal, tableTop + 6, { width: 70, align: 'right' });
@@ -204,7 +192,7 @@ export const generarPDFPedido = async (req, res) => {
         let currentY = tableTop + 25;
 
         if (detalle.length === 0) {
-            doc.font('Helvetica')
+            doc.font('Poppins')
                .fillColor(colors.textLight)
                .text('No hay productos en este pedido', 50, currentY + 10);
         } else {
@@ -257,11 +245,11 @@ export const generarPDFPedido = async (req, res) => {
            .stroke();
 
         doc.fontSize(12)
-           .font('Helvetica-Bold')
+           .font('Poppins-Bold')
            .fillColor('#ffffff')
            .text('TOTAL', 395, totalY + 8);
         doc.fontSize(20)
-           .font('Helvetica-Bold')
+           .font('Poppins-Bold')
            .fillColor('#ffffff')
            .text(`$${total.toFixed(2)}`, 395, totalY + 26, { align: 'left' });
 
@@ -276,14 +264,14 @@ export const generarPDFPedido = async (req, res) => {
         doc.moveDown(0.5);
 
         doc.fontSize(8)
-           .font('Helvetica')
+           .font('Poppins')
            .fillColor(colors.textLight)
            .text('Gracias por su compra', 50, doc.y, { align: 'center' })
            .text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, 50, doc.y + 14, { align: 'center' });
 
         // === PIE DE PÁGINA CON NÚMERO DE PÁGINA ===
         doc.fontSize(8)
-           .font('Helvetica')
+           .font('Poppins')
            .fillColor(colors.textLight)
            .text(
                `Página ${doc.page}`,
