@@ -241,16 +241,26 @@ export const generarPDFPedido = async (req, res) => {
 
         // === FOOTER ===
         doc.rect(50, doc.y, 495, 1)
-           .fillColor(colors.border)
-           .fill();
+        .fillColor(colors.border)
+        .fill();
 
         doc.moveDown(0.5);
 
+        const fechaLocal = new Date().toLocaleString('es-ES', {
+            timeZone: 'America/Guayaquil',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+
         doc.fontSize(8)
-           .font('Helvetica')
-           .fillColor(colors.textLight)
-           .text('Gracias por su compra', 50, doc.y, { align: 'center' })
-           .text(`Documento generado el ${new Date()}`, 50, doc.y + 14, { align: 'center' });
+        .font('Helvetica')
+        .fillColor(colors.textLight)
+        .text('Gracias por su compra', 50, doc.y, { align: 'center' })
+        .text(`Documento generado el ${fechaLocal}`, 50, doc.y + 14, { align: 'center' });
 
         doc.end();
 
