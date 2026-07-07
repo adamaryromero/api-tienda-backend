@@ -26,7 +26,7 @@ export const generarPDFPedido = async (req, res) => {
             WHERE d.ped_id = ?`, [id]
         );
 
-        // Crear el PDF
+        // Crear el PDF con mejor diseño
         const doc = new PDFDocument({ 
             size: 'A4', 
             margin: 50,
@@ -38,140 +38,265 @@ export const generarPDFPedido = async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename=pedido_${id}.pdf`);
         res.setHeader('Cache-Control', 'no-cache');
         
-        // Pipe directamente a la respuesta
         doc.pipe(res);
 
-        // === DISEÑO DEL PDF ===
+        // === COLORES ===
+        const colors = {
+            primary: '#1a73e8',      // Azul principal
+            secondary: '#34d399',    // Verde
+            dark: '#1a1a2e',         // Fondo oscuro
+            light: '#f8f9fa',        // Fondo claro
+            text: '#2d2d2d',         // Texto principal
+            textLight: '#6b7280',    // Texto secundario
+            border: '#e5e7eb',       // Bordes
+            accent: '#60a5fa'        // Acento
+        };
+
+        // === HEADER CON LOGO ===
+        // Barra superior decorativa
+        doc.rect(50, 40, 495, 4)
+           .fill(colors.primary);
         
-        // Header
-        doc.fontSize(20)
+        doc.rect(50, 44, 495, 2)
+           .fill(colors.accent);
+
+        // Título principal
+        doc.fontSize(24)
            .font('Helvetica-Bold')
-           .text('FACTURA DE PEDIDO', { align: 'center' })
-           .moveDown(0.5);
+           .fillColor(colors.primary)
+           .text('FACTURA', 50, 60, { align: 'left' });
+        
+        doc.fontSize(16)
+           .font('Helvetica')
+           .fillColor(colors.textLight)
+           .text('DE PEDIDO', 50, 88, { align: 'left' });
+
+        // Número de pedido a la derecha
+        doc.fontSize(14)
+           .font('Helvetica-Bold')
+           .fillColor(colors.dark)
+           .text(`#${pedido[0].ped_id}`, 450, 60, { align: 'right' });
         
         doc.fontSize(10)
            .font('Helvetica')
-           .text(`Pedido #${pedido[0].ped_id}`, { align: 'center' })
-           .text(`Fecha: ${new Date(pedido[0].ped_fecha).toLocaleString('es-ES')}`, { align: 'center' })
-           .moveDown(1);
+           .fillColor(colors.textLight)
+           .text(`Fecha: ${new Date(pedido[0].ped_fecha).toLocaleDateString('es-ES', {
+               year: 'numeric',
+               month: 'long',
+               day: 'numeric',
+               hour: '2-digit',
+               minute: '2-digit'
+           })}`, 450, 78, { align: 'right' });
 
         // Línea separadora
-        doc.moveTo(50, doc.y)
-           .lineTo(550, doc.y)
-           .stroke()
-           .moveDown(0.5);
-
-        // Datos del cliente
-        doc.fontSize(12)
-           .font('Helvetica-Bold')
-           .text('DATOS DEL CLIENTE', { underline: true })
-           .moveDown(0.3);
-        
-        doc.fontSize(10)
-           .font('Helvetica')
-           .text(`Nombre: ${pedido[0].cli_nombre}`)
-           .text(`Identificación: ${pedido[0].cli_identificacion}`)
-           .text(`Teléfono: ${pedido[0].cli_telefono || 'No registrado'}`)
-           .text(`Correo: ${pedido[0].cli_correo || 'No registrado'}`)
-           .text(`Dirección: ${pedido[0].cli_direccion || 'No registrada'}`)
-           .moveDown(0.5);
-
-        // Línea separadora
-        doc.moveTo(50, doc.y)
-           .lineTo(550, doc.y)
-           .stroke()
-           .moveDown(0.5);
-
-        // Detalle de productos
-        doc.fontSize(12)
-           .font('Helvetica-Bold')
-           .text('DETALLE DE PRODUCTOS', { underline: true })
-           .moveDown(0.3);
-
-        // Encabezados de tabla
-        const startX = 50;
-        let currentY = doc.y;
-        
-        doc.fontSize(9)
-           .font('Helvetica-Bold')
-           .text('Código', startX, currentY, { width: 80, align: 'left' })
-           .text('Producto', startX + 80, currentY, { width: 200, align: 'left' })
-           .text('Cant.', startX + 280, currentY, { width: 60, align: 'center' })
-           .text('Precio', startX + 340, currentY, { width: 80, align: 'right' })
-           .text('Subtotal', startX + 420, currentY, { width: 80, align: 'right' });
-
-        // Línea separadora
-        currentY = doc.y + 10;
-        doc.moveTo(startX, currentY)
-           .lineTo(530, currentY)
+        doc.moveTo(50, 115)
+           .lineTo(550, 115)
+           .strokeColor(colors.border)
+           .lineWidth(1)
            .stroke();
 
-        // Productos
-        let total = 0;
+        doc.moveDown(1);
+
+        // === ESTADO DEL PEDIDO ===
+        const estadoText = pedido[0].ped_estado === 1 ? 'COMPLETADO' : 'CANCELADO';
+        const estadoColor = pedido[0].ped_estado === 1 ? colors.secondary : '#ef4444';
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(estadoColor)
+           .text(`● ${estadoText}`, 50, 130, { align: 'left' });
+
+        doc.moveDown(1.5);
+
+        // === INFORMACIÓN DEL CLIENTE ===
+        // Título sección
+        doc.fontSize(11)
+           .font('Helvetica-Bold')
+           .fillColor(colors.text)
+           .text('INFORMACIÓN DEL CLIENTE', 50, 150);
+        
+        // Caja de información
+        const boxY = 160;
+        doc.rect(50, boxY, 495, 100)
+           .fillColor('#f8fafc')
+           .fill()
+           .strokeColor(colors.border)
+           .lineWidth(1)
+           .stroke();
+
+        // Datos en dos columnas
+        const col1 = 70;
+        const col2 = 300;
+        const startY = boxY + 20;
+
+        doc.fontSize(10)
+           .font('Helvetica-Bold')
+           .fillColor(colors.textLight)
+           .text('NOMBRE', col1, startY);
+        doc.font('Helvetica')
+           .fillColor(colors.text)
+           .text(pedido[0].cli_nombre, col1, startY + 14);
+
+        doc.font('Helvetica-Bold')
+           .fillColor(colors.textLight)
+           .text('IDENTIFICACIÓN', col2, startY);
+        doc.font('Helvetica')
+           .fillColor(colors.text)
+           .text(pedido[0].cli_identificacion, col2, startY + 14);
+
+        doc.font('Helvetica-Bold')
+           .fillColor(colors.textLight)
+           .text('TELÉFONO', col1, startY + 40);
+        doc.font('Helvetica')
+           .fillColor(colors.text)
+           .text(pedido[0].cli_telefono || 'No registrado', col1, startY + 54);
+
+        doc.font('Helvetica-Bold')
+           .fillColor(colors.textLight)
+           .text('CORREO', col2, startY + 40);
+        doc.font('Helvetica')
+           .fillColor(colors.text)
+           .text(pedido[0].cli_correo || 'No registrado', col2, startY + 54);
+
+        doc.font('Helvetica-Bold')
+           .fillColor(colors.textLight)
+           .text('DIRECCIÓN', col1, startY + 80);
+        doc.font('Helvetica')
+           .fillColor(colors.text)
+           .text(pedido[0].cli_direccion || 'No registrada', col1, startY + 94);
+
+        doc.moveDown(2);
+
+        // === DETALLE DE PRODUCTOS ===
+        doc.fontSize(11)
+           .font('Helvetica-Bold')
+           .fillColor(colors.text)
+           .text('DETALLE DE PRODUCTOS', 50, doc.y);
+
         doc.moveDown(0.5);
+
+        // Tabla
+        const tableTop = doc.y;
+        const colPositions = {
+            code: 50,
+            name: 130,
+            qty: 370,
+            price: 420,
+            subtotal: 490
+        };
+
+        // Encabezados de tabla
+        doc.rect(50, tableTop, 495, 25)
+           .fillColor(colors.primary)
+           .fill();
+
         doc.fontSize(9)
-           .font('Helvetica');
+           .font('Helvetica-Bold')
+           .fillColor('#ffffff')
+           .text('CÓDIGO', colPositions.code, tableTop + 6, { width: 80, align: 'left' })
+           .text('PRODUCTO', colPositions.name, tableTop + 6, { width: 240, align: 'left' })
+           .text('CANT.', colPositions.qty, tableTop + 6, { width: 50, align: 'center' })
+           .text('PRECIO', colPositions.price, tableTop + 6, { width: 70, align: 'right' })
+           .text('SUBTOTAL', colPositions.subtotal, tableTop + 6, { width: 70, align: 'right' });
+
+        // Filas de productos
+        let total = 0;
+        let currentY = tableTop + 25;
 
         if (detalle.length === 0) {
-            doc.text('No hay productos en este pedido', startX, doc.y);
+            doc.font('Helvetica')
+               .fillColor(colors.textLight)
+               .text('No hay productos en este pedido', 50, currentY + 10);
         } else {
             detalle.forEach((item, index) => {
-                // ✅ CONVERTIR A NÚMERO ANTES DE USAR toFixed
                 const precio = Number(item.det_precio) || 0;
                 const cantidad = Number(item.det_cantidad) || 0;
                 const subtotal = precio * cantidad;
                 total += subtotal;
-                currentY = doc.y;
 
-                // Manejar nombres largos
-                let nombreProducto = item.prod_nombre || 'Producto';
-                if (nombreProducto.length > 30) {
-                    nombreProducto = nombreProducto.substring(0, 27) + '...';
+                // Color alternado para filas
+                if (index % 2 === 0) {
+                    doc.rect(50, currentY, 495, 22)
+                       .fillColor('#f9fafb')
+                       .fill();
                 }
 
-                doc.text(item.prod_codigo || '-', startX, currentY, { width: 80, align: 'left' })
-                   .text(nombreProducto, startX + 80, currentY, { width: 200, align: 'left' })
-                   .text(cantidad.toString(), startX + 280, currentY, { width: 60, align: 'center' })
-                   .text(`$${precio.toFixed(2)}`, startX + 340, currentY, { width: 80, align: 'right' })
-                   .text(`$${subtotal.toFixed(2)}`, startX + 420, currentY, { width: 80, align: 'right' });
-                
-                if (index < detalle.length - 1) {
-                    doc.moveDown(0.3);
-                }
+                const nombreProducto = item.prod_nombre || 'Producto';
+                const nombreTruncado = nombreProducto.length > 35 ? 
+                    nombreProducto.substring(0, 32) + '...' : 
+                    nombreProducto;
+
+                doc.fontSize(9)
+                   .font('Helvetica')
+                   .fillColor(colors.text)
+                   .text(item.prod_codigo || '-', colPositions.code, currentY + 4, { width: 80, align: 'left' })
+                   .text(nombreTruncado, colPositions.name, currentY + 4, { width: 240, align: 'left' })
+                   .text(cantidad.toString(), colPositions.qty, currentY + 4, { width: 50, align: 'center' })
+                   .text(`$${precio.toFixed(2)}`, colPositions.price, currentY + 4, { width: 70, align: 'right' })
+                   .text(`$${subtotal.toFixed(2)}`, colPositions.subtotal, currentY + 4, { width: 70, align: 'right' });
+
+                currentY += 22;
             });
         }
 
-        // Línea separadora
-        currentY = doc.y + 10;
-        doc.moveTo(startX, currentY)
-           .lineTo(530, currentY)
+        // Línea final de la tabla
+        const finalTableY = currentY;
+        doc.rect(50, finalTableY - 2, 495, 2)
+           .fillColor(colors.border)
+           .fill();
+
+        // === TOTAL ===
+        doc.moveDown(0.5);
+        const totalY = doc.y + 10;
+
+        // Caja de total
+        doc.rect(380, totalY, 165, 50)
+           .fillColor(colors.primary)
+           .fill()
+           .roundedRect(380, totalY, 165, 50, 4)
            .stroke();
 
-        // Total
-        doc.moveDown(0.5);
-        doc.fontSize(14)
+        doc.fontSize(12)
            .font('Helvetica-Bold')
-           .text(`TOTAL: $${total.toFixed(2)}`, 350, doc.y, { align: 'right' })
-           .moveDown(2);
+           .fillColor('#ffffff')
+           .text('TOTAL', 395, totalY + 8);
+        doc.fontSize(20)
+           .font('Helvetica-Bold')
+           .fillColor('#ffffff')
+           .text(`$${total.toFixed(2)}`, 395, totalY + 26, { align: 'left' });
 
-        // Estado del pedido
-        doc.fontSize(10)
-           .font('Helvetica')
-           .text(`Estado: ${pedido[0].ped_estado === 1 ? '✅ COMPLETADO' : '❌ CANCELADO'}`, { align: 'center' })
-           .moveDown(1);
+        doc.moveDown(4);
 
-        // Footer
+        // === FOOTER ===
+        // Línea decorativa
+        doc.rect(50, doc.y, 495, 1)
+           .fillColor(colors.border)
+           .fill();
+
+        doc.moveDown(0.5);
+
         doc.fontSize(8)
            .font('Helvetica')
-           .text('Gracias por su compra', { align: 'center' })
-           .text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, { align: 'center' });
+           .fillColor(colors.textLight)
+           .text('Gracias por su compra', 50, doc.y, { align: 'center' })
+           .text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, 50, doc.y + 14, { align: 'center' });
+
+        // === PIE DE PÁGINA CON NÚMERO DE PÁGINA ===
+        doc.fontSize(8)
+           .font('Helvetica')
+           .fillColor(colors.textLight)
+           .text(
+               `Página ${doc.page}`,
+               50,
+               doc.page.height - 50,
+               { align: 'center' }
+           );
 
         // Finalizar PDF
         doc.end();
 
     } catch (error) {
         console.error('Error al generar PDF:', error);
-        // Si el error ocurrió antes de enviar headers, enviar respuesta JSON
         if (!res.headersSent) {
             res.status(500).json({ 
                 message: "Error al generar el PDF",
