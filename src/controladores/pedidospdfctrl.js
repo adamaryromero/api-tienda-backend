@@ -4,8 +4,9 @@ import { conmysql } from "../db.js";
 export const generarPDFPedido = async (req, res) => {
     try {
         const { id } = req.params;
+        console.log(`Generando PDF para pedido #${id}`);
 
-        //obtener datos del pedido
+        // Obtener datos del pedido
         const [pedido] = await conmysql.query(`
             SELECT p.*, c.cli_nombre, c.cli_identificacion, c.cli_direccion, c.cli_telefono, c.cli_correo
             FROM pedidos p 
@@ -17,7 +18,7 @@ export const generarPDFPedido = async (req, res) => {
             return res.status(404).json({ message: "Pedido no encontrado" });
         }
 
-        //obtener detalle del pedido
+        // Obtener detalle del pedido
         const [detalle] = await conmysql.query(`
             SELECT d.*, pr.prod_nombre, pr.prod_codigo 
             FROM pedidos_detalle d
@@ -25,17 +26,24 @@ export const generarPDFPedido = async (req, res) => {
             WHERE d.ped_id = ?`, [id]
         );
 
-        //crear el PDF
-        const doc = new PDFDocument({ size: 'A4', margin: 50 });
+        // Crear el PDF
+        const doc = new PDFDocument({ 
+            size: 'A4', 
+            margin: 50,
+            bufferPages: true 
+        });
         
-        //configurar headers para descarga
+        // Configurar headers para descarga
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=pedido_${id}.pdf`);
+        res.setHeader('Cache-Control', 'no-cache');
         
+        // Pipe directamente a la respuesta
         doc.pipe(res);
 
-        //diseño del pdf
-
+        // === DISEÑO DEL PDF ===
+        
+        // Header
         doc.fontSize(20)
            .font('Helvetica-Bold')
            .text('FACTURA DE PEDIDO', { align: 'center' })
@@ -44,16 +52,16 @@ export const generarPDFPedido = async (req, res) => {
         doc.fontSize(10)
            .font('Helvetica')
            .text(`Pedido #${pedido[0].ped_id}`, { align: 'center' })
-           .text(`Fecha: ${new Date(pedido[0].ped_fecha).toLocaleString()}`, { align: 'center' })
+           .text(`Fecha: ${new Date(pedido[0].ped_fecha).toLocaleString('es-ES')}`, { align: 'center' })
            .moveDown(1);
 
-        //línea separadora
+        // Línea separadora
         doc.moveTo(50, doc.y)
            .lineTo(550, doc.y)
            .stroke()
            .moveDown(0.5);
 
-        //datos del cliente
+        // Datos del cliente
         doc.fontSize(12)
            .font('Helvetica-Bold')
            .text('DATOS DEL CLIENTE', { underline: true })
@@ -68,19 +76,19 @@ export const generarPDFPedido = async (req, res) => {
            .text(`Dirección: ${pedido[0].cli_direccion || 'No registrada'}`)
            .moveDown(0.5);
 
-        //línea separadora
+        // Línea separadora
         doc.moveTo(50, doc.y)
            .lineTo(550, doc.y)
            .stroke()
            .moveDown(0.5);
 
-        //detalle de productos
+        // Detalle de productos
         doc.fontSize(12)
            .font('Helvetica-Bold')
            .text('DETALLE DE PRODUCTOS', { underline: true })
            .moveDown(0.3);
 
-        //encabezados de tabla
+        // Encabezados de tabla
         const startX = 50;
         let currentY = doc.y;
         
@@ -88,67 +96,87 @@ export const generarPDFPedido = async (req, res) => {
            .font('Helvetica-Bold')
            .text('Código', startX, currentY, { width: 80, align: 'left' })
            .text('Producto', startX + 80, currentY, { width: 200, align: 'left' })
-           .text('Cantidad', startX + 280, currentY, { width: 80, align: 'center' })
-           .text('Precio', startX + 360, currentY, { width: 80, align: 'right' })
-           .text('Subtotal', startX + 440, currentY, { width: 80, align: 'right' });
+           .text('Cant.', startX + 280, currentY, { width: 60, align: 'center' })
+           .text('Precio', startX + 340, currentY, { width: 80, align: 'right' })
+           .text('Subtotal', startX + 420, currentY, { width: 80, align: 'right' });
 
-        //línea separadora
+        // Línea separadora
         currentY = doc.y + 10;
         doc.moveTo(startX, currentY)
-           .lineTo(550, currentY)
+           .lineTo(530, currentY)
            .stroke();
 
-        //productos
+        // Productos
         let total = 0;
         doc.moveDown(0.5);
         doc.fontSize(9)
            .font('Helvetica');
 
-        detalle.forEach((item, index) => {
-            const subtotal = item.det_precio * item.det_cantidad;
-            total += subtotal;
-            currentY = doc.y;
+        if (detalle.length === 0) {
+            doc.text('No hay productos en este pedido', startX, doc.y);
+        } else {
+            detalle.forEach((item, index) => {
+                // ✅ CONVERTIR A NÚMERO ANTES DE USAR toFixed
+                const precio = Number(item.det_precio) || 0;
+                const cantidad = Number(item.det_cantidad) || 0;
+                const subtotal = precio * cantidad;
+                total += subtotal;
+                currentY = doc.y;
 
-            doc.text(item.prod_codigo || '-', startX, currentY, { width: 80, align: 'left' })
-               .text(item.prod_nombre, startX + 80, currentY, { width: 200, align: 'left' })
-               .text(item.det_cantidad.toString(), startX + 280, currentY, { width: 80, align: 'center' })
-               .text(`$${item.det_precio.toFixed(2)}`, startX + 360, currentY, { width: 80, align: 'right' })
-               .text(`$${subtotal.toFixed(2)}`, startX + 440, currentY, { width: 80, align: 'right' });
-            
-            if (index < detalle.length - 1) {
-                doc.moveDown(0.3);
-            }
-        });
+                // Manejar nombres largos
+                let nombreProducto = item.prod_nombre || 'Producto';
+                if (nombreProducto.length > 30) {
+                    nombreProducto = nombreProducto.substring(0, 27) + '...';
+                }
 
-        //línea separadora
+                doc.text(item.prod_codigo || '-', startX, currentY, { width: 80, align: 'left' })
+                   .text(nombreProducto, startX + 80, currentY, { width: 200, align: 'left' })
+                   .text(cantidad.toString(), startX + 280, currentY, { width: 60, align: 'center' })
+                   .text(`$${precio.toFixed(2)}`, startX + 340, currentY, { width: 80, align: 'right' })
+                   .text(`$${subtotal.toFixed(2)}`, startX + 420, currentY, { width: 80, align: 'right' });
+                
+                if (index < detalle.length - 1) {
+                    doc.moveDown(0.3);
+                }
+            });
+        }
+
+        // Línea separadora
         currentY = doc.y + 10;
         doc.moveTo(startX, currentY)
-           .lineTo(550, currentY)
+           .lineTo(530, currentY)
            .stroke();
 
-        //total
+        // Total
         doc.moveDown(0.5);
         doc.fontSize(14)
            .font('Helvetica-Bold')
-           .text(`TOTAL A PAGAR: $${total.toFixed(2)}`, 350, doc.y, { align: 'right' })
+           .text(`TOTAL: $${total.toFixed(2)}`, 350, doc.y, { align: 'right' })
            .moveDown(2);
 
-        //estado del pedido
+        // Estado del pedido
         doc.fontSize(10)
            .font('Helvetica')
            .text(`Estado: ${pedido[0].ped_estado === 1 ? '✅ COMPLETADO' : '❌ CANCELADO'}`, { align: 'center' })
            .moveDown(1);
 
-        //pie de página
+        // Footer
         doc.fontSize(8)
            .font('Helvetica')
            .text('Gracias por su compra', { align: 'center' })
-           .text(`Documento generado el ${new Date().toLocaleString()}`, { align: 'center' });
+           .text(`Documento generado el ${new Date().toLocaleString('es-ES')}`, { align: 'center' });
 
+        // Finalizar PDF
         doc.end();
 
     } catch (error) {
         console.error('Error al generar PDF:', error);
-        res.status(500).json({ message: "Error al generar el PDF" });
+        // Si el error ocurrió antes de enviar headers, enviar respuesta JSON
+        if (!res.headersSent) {
+            res.status(500).json({ 
+                message: "Error al generar el PDF",
+                error: error.message 
+            });
+        }
     }
 };
