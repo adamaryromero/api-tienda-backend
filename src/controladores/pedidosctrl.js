@@ -1,11 +1,54 @@
 import { conmysql } from "../db.js";
 import admin from "firebase-admin";
-import fs from "fs";
 
-const serviceAccount = JSON.parse(fs.readFileSync('./firebase-adminsdk.json', 'utf8'));
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
+if (!admin.apps.length) {
+    const serviceAccount = {
+        type: process.env.FIREBASE_TYPE || "service_account",
+        project_id: process.env.FIREBASE_PROJECT_ID || "apptienda-60819",
+        private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || "c4bc90c87b528431adec0148f5d7e3e213683cf9",
+        private_key: (process.env.FIREBASE_PRIVATE_KEY || `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCgiuMneCeaKVTj
+q4JPbMxFpMaav5x4E+zRsOnTuwUIvWhAmVuAj1f0UxUUhg27R567YaHzuuSEP808
+bAEWrg78Z3xFGnXLtryJucwTaNc3BSvT6/5g/+s6QJZL0EEH4EjzcFbUjTLN3Y16
+siWc5jeMdID/2EvbzFq4YwE2MiBHPh711VRJllcFBQi1Manxqus/1fKXqJB8kava
+eyQU5NUX/S8wXQ6XseWrAbRv9Hy7icTyNXqb5KomVlahSYWOlTBCJPDucsY8d5jf
+pLDXpdEttJef85IdE6/0QA9Tc0rB763ZQ7SRqS0p381erBS/veS/JcvUSv9gSCjU
+nFFnGx0HAgMBAAECggEAGXU8xT8EBKnGON4zKVYm5GpXRiXZcZ8zQCNOSRGQoEys
+0gWfoXjZqThdkOYbGlYmoS8/x88cuq4FZS35VDfgz3y3k5u5D0dYiXyJlJBdBHAQ
+/aegLJCYpCGm07nf/hg+aUAovMbxRfz6mPjUBxfouiClbizGBsJWpoOopwf232UF
+l4Qzq+m021ituqMktlcG0lZ9Rd9pjv4HOrs88F4f3q4jMI3oyYUSgVrOxCAlf4j7
+CoJo9CxiHFSg5PpghnS8uU3h5hdChUr9+aXBVgB9kXwcyEnMhTqR3Cm/sHsreeaE
+yGUDfX7gNWTK72XNi8VZh+URMU1xx/krjoejGGFMlQKBgQDTt+RGR/ubtcXtKjFJ
+fVjXnWdLhG4KP8lXMa8UfBFW0o6DMCWzxp+/+l9dkmv7PxiNJi/jMetnEhRU4iea
+amJFNXPrLvCQa0zvRDRiVv60IMzCbZ0MEP7I7F7B7AklVwemxkfMiYI8+cWUgt/E
+1nEHzcccfklwypvEYfU7Rv2kZQKBgQDCHt86XiRQQKmuWUhYoj5EhbbyvT32XrAc
+YOf0KlUk25I4gOwHzgHs+VTHZCfRUVKMPVkMqmsCyy1+gsly0AVd9lJtGNyJiBFF
+fp/iz/nOI4OuHlvGcytN2ysR6MRKzxoQu4RHQEUMFzLCzK4G7w396IYumBGdoA63
+AD0/PN1W+wKBgQC7y938SVVxZOdP26EkYr8vYjuBzNIe3T2mzjdSoEpxDQvEaizH
+LmP9UgTNZ1fI4MrSSREpIdqA7pSCRqiCW+MXKLbN4jEYqVTw1zrwD+KVvJJj0/79
++QVHDANxWAE00eHDmRWO5FpV4+fSN9RtMRnJpkn7iDl0hwNsSsfP8MSD0QKBgGfh
+W3YBsQ8dO3BoqPV9hTLoF3oY2VLBYx8coKQiD0RVGA+StjyK+q7U0pCNQV2bVkBk
+CAZmIDPzhJoB5UnClkytJ3joaARVQ2DcHTWkNDsi+DGyX0x4j0Dvu0GvPXQHFhzE
+LEpw00JgG7LxE2P0g5lP2JaQnESsxZMa1qvDp3MHAoGAcbPorBXNRV9+KBS7Ee5x
+b2Zy1t9j9RuYpG3OhD3oZTXKqYiX1B9yQruSbnMeAE9Fkt4RRrwUkYQyeNLhCoq2
+S89WbInNP4+7CkHw1TTWba+rJ33YilYF+yhGwiJo7hrKMoDh1aAuRtLw+IIgj4hp
+NVrXrwa2OkRkjD/Ax4JyFYM=
+-----END PRIVATE KEY-----
+`).replace(/\\n/g, '\n'),
+        client_email: process.env.FIREBASE_CLIENT_EMAIL || "firebase-adminsdk-fbsvc@apptienda-60819.iam.gserviceaccount.com",
+        client_id: process.env.FIREBASE_CLIENT_ID || "111260683629266585270",
+        auth_uri: process.env.FIREBASE_AUTH_URI || "https://accounts.google.com/o/oauth2/auth",
+        token_uri: process.env.FIREBASE_TOKEN_URI || "https://oauth2.googleapis.com/token",
+        auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL || "https://www.googleapis.com/oauth2/v1/certs",
+        client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL || "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40apptienda-60819.iam.gserviceaccount.com",
+        universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN || "googleapis.com"
+    };
+
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("✅ Firebase inicializado correctamente");
+}
 
 export const postPedidos = async (req, res) => {
     const conexion = await conmysql.getConnection();
