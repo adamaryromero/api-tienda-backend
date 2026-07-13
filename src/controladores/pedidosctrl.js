@@ -1,4 +1,11 @@
 import { conmysql } from "../db.js";
+import admin from "firebase-admin";
+import fs from "fs";
+
+const serviceAccount = JSON.parse(fs.readFileSync('./firebase-adminsdk.json', 'utf8'));
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
 
 export const postPedidos = async (req, res) => {
     const conexion = await conmysql.getConnection();
@@ -18,7 +25,7 @@ export const postPedidos = async (req, res) => {
 
         let idCliente = Number(cli_id);
 
-        //si el cliente es nuevo
+        // Si el cliente es nuevo
         if (idCliente === 0) {
             const [cliente] = await conexion.query(
                 `INSERT INTO clientes (cli_identificacion, cli_nombre, cli_telefono, cli_correo, cli_direccion, cli_pais, cli_ciudad)
@@ -49,11 +56,39 @@ export const postPedidos = async (req, res) => {
         }
 
         await conexion.commit();
-        res.status(201).json({ ok: true, mensaje: "Pedido registrado correctamente.", ped_id, cli_id: idCliente });
+
+        try {
+            const tokenAdmin = "dckJtQjxR-qnH_4DIOcMWc:APA 91bEnnE41sXLx3IWPNKYtjyYS-Sf_qbEI BWz1pxGszlFnM8u3VIEq56O0EshC0j1 1PgMRrTz-Islj9RcdvGxyB6IPd6MNzR0u 4YYu8fWaJPl6cEf0rNo";
+
+            const mensajePush = {
+                notification: {
+                    title: '¡Nuevo Pedido!',
+                    body: `El cliente ${cli_nombre} ha realizado un pedido #${ped_id}`
+                },
+                data: {
+                    pedido_id: String(ped_id),
+                    type: 'nuevo_pedido'
+                },
+                token: tokenAdmin
+            };
+
+            const response = await admin.messaging().send(mensajePush);
+            console.log("Notificación enviada al Admin:", response);
+
+        } catch (errorPush) {
+            console.error("La venta se guardó, pero falló la notificación:", errorPush.message);
+        }
+
+        res.status(201).json({
+            ok: true,
+            mensaje: "Pedido registrado correctamente.",
+            ped_id,
+            cli_id: idCliente
+        });
 
     } catch (error) {
         await conexion.rollback();
-        console.error(error);
+        console.error("Error en pedido:", error);
         res.status(500).json({ ok: false, mensaje: error.message });
     } finally {
         conexion.release();
@@ -108,7 +143,7 @@ export const getPedidosxid = async (req, res) => {
 export const putPedidos = async (req, res) => {
     try {
         const { id } = req.params;
-        const { ped_estado } = req.body; // Solo recibimos el nuevo estado
+        const { ped_estado } = req.body;
 
         const [result] = await conmysql.query(
             'UPDATE pedidos SET ped_estado = ? WHERE ped_id = ?',
@@ -140,7 +175,7 @@ export const deletePedidos = async (req, res) => {
         }
 
         await conexion.commit();
-        res.json({ message: "Pedido y sus detalles eliminados correctamente de la base de datos" });
+        res.json({ message: "Pedido y sus detalles eliminados correctamente" });
 
     } catch (error) {
         await conexion.rollback();
