@@ -1,30 +1,52 @@
-import { conmysql } from "../db.js";
-import admin from "firebase-admin";
+import { conmysql } from '../db.js';
+import { notificarNuevoPedido } from '../services/notification.service.js';
 
-let firebaseInicializado = false;
-
-try {
-    if (!admin.apps || admin.apps.length === 0) {
-        if (process.env.FIREBASE_JSON) {
-            const serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount)
-            });
-            console.log("Firebase inicializado correctamente (desde variables de entorno)");
-            firebaseInicializado = true;
-        } 
-        else {
-            console.warn("No se encontró FIREBASE_JSON en variables de entorno. Firebase no inicializado.");
-        }
-    } else {
-        firebaseInicializado = true;
-        console.log("Firebase ya estaba inicializado");
+export const getPedidos = async (req, res) => {
+    try {
+        const [result] = await conmysql.query(`
+            SELECT p.ped_id, p.ped_fecha, p.ped_estado, c.cli_nombre, c.cli_identificacion 
+            FROM pedidos p 
+            INNER JOIN clientes c ON p.cli_id = c.cli_id
+            ORDER BY p.ped_id DESC
+        `);
+        res.json(result);
+    } catch (error) {
+        return res.status(500).json({ message: "Error al consultar la lista de pedidos" });
     }
-} catch (error) {
-    console.error("Error al inicializar Firebase:", error.message);
-}
+};
 
-export const postPedidos = async (req, res) => {
+export const getPedidosxid = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [pedido] = await conmysql.query(`
+            SELECT p.*, c.cli_nombre, c.cli_identificacion, c.cli_direccion 
+            FROM pedidos p 
+            INNER JOIN clientes c ON p.cli_id = c.cli_id 
+            WHERE p.ped_id = ?`, [id]
+        );
+
+        if (pedido.length === 0) {
+            return res.status(404).json({ message: "Pedido no encontrado" });
+        }
+
+        const [detalle] = await conmysql.query(`
+            SELECT d.*, pr.prod_nombre, pr.prod_imagen 
+            FROM pedidos_detalle d
+            INNER JOIN productos pr ON d.prod_id = pr.prod_id
+            WHERE d.ped_id = ?`, [id]
+        );
+
+        res.json({
+            pedido: pedido[0],
+            detalle: detalle
+        });
+    } catch (error) {
+        return res.status(500).json({ message: "Error al consultar el pedido" });
+    }
+};
+
+export const postInsertarPedido = async (req, res) => {
     const conexion = await conmysql.getConnection();
 
     try {
@@ -73,49 +95,22 @@ export const postPedidos = async (req, res) => {
 
         await conexion.commit();
 
-        if (firebaseInicializado) {
-            try {
-                const [admins] = await conmysql.query(
-                    "SELECT fcm_token FROM usuarios WHERE usr_rol = 'admin' AND fcm_token IS NOT NULL"
-                );
+        
+        try {
+            const [adminRows] = await conmysql.query(
+                "SELECT fcm_token FROM usuarios WHERE usr_rol = 'admin' AND fcm_token IS NOT NULL"
+            );
 
-                if (admins.length === 0) {
-                    console.log("No hay administradores con token FCM registrado");
-                } else {
-                    for (const adminRow of admins) {
-                        const mensajePush = {
-                            notification: {
-                                title: 'Nuevo Pedido',
-                                body: `El cliente ${cli_nombre} ha realizado un pedido #${ped_id}`
-                            },
-                            data: {
-                                pedido_id: String(ped_id),
-                                type: 'nuevo_pedido'
-                            },
-                            token: adminRow.fcm_token
-                        };
-
-                        try {
-                            await admin.messaging().send(mensajePush);
-                            console.log(`Notificación enviada a admin con token: ${adminRow.fcm_token.substring(0, 15)}...`);
-                        } catch (sendError) {
-                            console.error(`Error al enviar a token ${adminRow.fcm_token.substring(0, 15)}...:`, sendError.message);
-                            if (sendError.code === 'messaging/invalid-registration-token' || 
-                                sendError.code === 'messaging/registration-token-not-registered') {
-                                await conmysql.query(
-                                    'UPDATE usuarios SET fcm_token = NULL WHERE fcm_token = ?',
-                                    [adminRow.fcm_token]
-                                );
-                                console.log(`Token inválido eliminado de la BD: ${adminRow.fcm_token.substring(0, 15)}...`);
-                            }
-                        }
-                    }
+            if (adminRows.length === 0) {
+                console.log("No hay administradores con token FCM registrado");
+            } else {
+                for (const admin of adminRows) {
+                    await notificarNuevoPedido(ped_id, cli_nombre || 'Cliente', admin.fcm_token);
+                    console.log(`Notificacion enviada al administrador por pedido #${ped_id}`);
                 }
-            } catch (errorPush) {
-                console.error("La venta se guardó, pero falló la notificación:", errorPush.message);
             }
-        } else {
-            console.warn("Firebase no inicializado. Notificaciones no enviadas.");
+        } catch (notificationError) {
+            console.error("Error al enviar notificacion:", notificationError);
         }
 
         res.status(201).json({
@@ -131,51 +126,6 @@ export const postPedidos = async (req, res) => {
         res.status(500).json({ ok: false, mensaje: error.message });
     } finally {
         conexion.release();
-    }
-};
-
-export const getPedidos = async (req, res) => {
-    try {
-        const [result] = await conmysql.query(`
-            SELECT p.ped_id, p.ped_fecha, p.ped_estado, c.cli_nombre, c.cli_identificacion 
-            FROM pedidos p 
-            INNER JOIN clientes c ON p.cli_id = c.cli_id
-            ORDER BY p.ped_id DESC
-        `);
-        res.json(result);
-    } catch (error) {
-        return res.status(500).json({ message: "Error al consultar la lista de pedidos" });
-    }
-};
-
-export const getPedidosxid = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const [pedido] = await conmysql.query(`
-            SELECT p.*, c.cli_nombre, c.cli_identificacion, c.cli_direccion 
-            FROM pedidos p 
-            INNER JOIN clientes c ON p.cli_id = c.cli_id 
-            WHERE p.ped_id = ?`, [id]
-        );
-
-        if (pedido.length === 0) {
-            return res.status(404).json({ message: "Pedido no encontrado" });
-        }
-
-        const [detalle] = await conmysql.query(`
-            SELECT d.*, pr.prod_nombre, pr.prod_imagen 
-            FROM pedidos_detalle d
-            INNER JOIN productos pr ON d.prod_id = pr.prod_id
-            WHERE d.ped_id = ?`, [id]
-        );
-
-        res.json({
-            pedido: pedido[0],
-            detalle: detalle
-        });
-    } catch (error) {
-        return res.status(500).json({ message: "Error al consultar el pedido" });
     }
 };
 
