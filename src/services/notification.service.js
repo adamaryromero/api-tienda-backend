@@ -1,6 +1,6 @@
 import admin from '../firebase.js';
 
-export const enviarNotificacion = async (fcmToken, title, body) => {
+export const enviarNotificacion = async (fcm_token, title, body) => {
     if (!admin) {
         console.log('Firebase no inicializado. Notificacion no enviada.');
         return null;
@@ -11,7 +11,7 @@ export const enviarNotificacion = async (fcmToken, title, body) => {
             title: title,
             body: body,
         },
-        token: fcmToken,
+        token: fcm_token,
         android: {
             priority: 'high',
             notification: {
