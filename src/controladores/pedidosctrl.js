@@ -1,21 +1,25 @@
-// backend/src/controladores/pedidosctrl.js
 import { conmysql } from "../db.js";
 import admin from "firebase-admin";
 
-let serviceAccount;
+let firebaseInicializado = false;
 
 try {
-    if (process.env.FIREBASE_JSON) {
-        serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
+    if (!admin.apps || admin.apps.length === 0) {
+        if (process.env.FIREBASE_JSON) {
+            const serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+            console.log("Firebase inicializado correctamente (desde variables de entorno)");
+            firebaseInicializado = true;
+        } 
+        else {
+            console.warn("No se encontró FIREBASE_JSON en variables de entorno. Firebase no inicializado.");
+        }
     } else {
-        console.error("FIREBASE_JSON no encontrada en variables de entorno");
-        process.exit(1);
+        firebaseInicializado = true;
+        console.log("Firebase ya estaba inicializado");
     }
-
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
-    console.log("Firebase inicializado correctamente");
 } catch (error) {
     console.error("Error al inicializar Firebase:", error.message);
 }
@@ -69,34 +73,49 @@ export const postPedidos = async (req, res) => {
 
         await conexion.commit();
 
-        try {
-            const [admins] = await conmysql.query(
-                "SELECT fcm_token FROM usuarios WHERE usr_rol = 'admin' AND fcm_token IS NOT NULL"
-            );
+        if (firebaseInicializado) {
+            try {
+                const [admins] = await conmysql.query(
+                    "SELECT fcm_token FROM usuarios WHERE usr_rol = 'admin' AND fcm_token IS NOT NULL"
+                );
 
-            if (admins.length === 0) {
-                console.log("No hay administradores con token FCM registrado");
-            } else {
-                for (const admin of admins) {
-                    const mensajePush = {
-                        notification: {
-                            title: 'Nuevo Pedido',
-                            body: `El cliente ${cli_nombre} ha realizado un pedido #${ped_id}`
-                        },
-                        data: {
-                            pedido_id: String(ped_id),
-                            type: 'nuevo_pedido'
-                        },
-                        token: admin.fcm_token
-                    };
+                if (admins.length === 0) {
+                    console.log("No hay administradores con token FCM registrado");
+                } else {
+                    for (const adminRow of admins) {
+                        const mensajePush = {
+                            notification: {
+                                title: 'Nuevo Pedido',
+                                body: `El cliente ${cli_nombre} ha realizado un pedido #${ped_id}`
+                            },
+                            data: {
+                                pedido_id: String(ped_id),
+                                type: 'nuevo_pedido'
+                            },
+                            token: adminRow.fcm_token
+                        };
 
-                    await admin.messaging().send(mensajePush);
-                    console.log(`Notificación enviada a admin con token: ${admin.fcm_token.substring(0, 15)}...`);
+                        try {
+                            await admin.messaging().send(mensajePush);
+                            console.log(`Notificación enviada a admin con token: ${adminRow.fcm_token.substring(0, 15)}...`);
+                        } catch (sendError) {
+                            console.error(`Error al enviar a token ${adminRow.fcm_token.substring(0, 15)}...:`, sendError.message);
+                            if (sendError.code === 'messaging/invalid-registration-token' || 
+                                sendError.code === 'messaging/registration-token-not-registered') {
+                                await conmysql.query(
+                                    'UPDATE usuarios SET fcm_token = NULL WHERE fcm_token = ?',
+                                    [adminRow.fcm_token]
+                                );
+                                console.log(`Token inválido eliminado de la BD: ${adminRow.fcm_token.substring(0, 15)}...`);
+                            }
+                        }
+                    }
                 }
+            } catch (errorPush) {
+                console.error("La venta se guardó, pero falló la notificación:", errorPush.message);
             }
-
-        } catch (errorPush) {
-            console.error("La venta se guardó, pero falló la notificación:", errorPush.message);
+        } else {
+            console.warn("Firebase no inicializado. Notificaciones no enviadas.");
         }
 
         res.status(201).json({

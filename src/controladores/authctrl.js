@@ -71,3 +71,23 @@ export const login = async (req, res) => {
     }
 };
 
+export const guardarTokenFCM = async (req, res) => {
+    try {
+        const { fcmToken } = req.body;
+        const userId = req.usuario.id;
+
+        if (!fcmToken) {
+            return res.status(400).json({ error: 'Token FCM es requerido' });
+        }
+
+        await conmysql.query(
+            'UPDATE usuarios SET fcm_token = ? WHERE usr_id = ?',
+            [fcmToken, userId]
+        );
+
+        res.json({ message: 'Token FCM guardado correctamente' });
+    } catch (error) {
+        console.error('Error al guardar token FCM:', error);
+        res.status(500).json({ error: 'Error al guardar token' });
+    }
+};
