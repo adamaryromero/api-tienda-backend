@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors';
+import './firebase.js';
 import clientesRoutes from './routes/clientes.routes.js'
 import productosRoutes from './routes/productos.routes.js';
 import pedidosRoutes from './routes/pedidos.routes.js';
