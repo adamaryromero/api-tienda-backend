@@ -1,10 +1,14 @@
 import { conmysql } from "../db.js";
 import admin from "firebase-admin";
-import fs from "fs";
 
-const serviceAccount = JSON.parse(
-    fs.readFileSync("./apptienda-60819-firebase-adminsdk-fbsvc-c4bc90c87b.json", "utf8")
-);
+let serviceAccount;
+
+if (process.env.FIREBASE_JSON) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
+} else {
+    console.error("FIREBASE_JSON no encontrada en variables de entorno");
+    process.exit(1);
+}
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -60,7 +64,7 @@ export const postPedidos = async (req, res) => {
         await conexion.commit();
 
         try {
-            const tokenAdmin = "dckJtQjxR-qnH_4DIOcMWc:APA91bEnnE41sXLx3IWPNKYtjyYS-Sf_qbEIBWz1pxGszlFnM8u3VIEq56O0EshC0j11PgMRrTz-Islj9RcdvGxyB6IPd6MNzR0u4YYu8fWaJPl6cEf0rNo";
+            const tokenAdmin = "AQUI_VA_TU_TOKEN_FCM_REAL";
 
             const mensajePush = {
                 notification: {
