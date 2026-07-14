@@ -1,18 +1,24 @@
+// backend/src/controladores/pedidosctrl.js
 import { conmysql } from "../db.js";
 import admin from "firebase-admin";
 
 let serviceAccount;
 
-if (process.env.FIREBASE_JSON) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
-} else {
-    console.error("FIREBASE_JSON no encontrada en variables de entorno");
-    process.exit(1);
-}
+try {
+    if (process.env.FIREBASE_JSON) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_JSON);
+    } else {
+        console.error("FIREBASE_JSON no encontrada en variables de entorno");
+        process.exit(1);
+    }
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-});
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("Firebase inicializado correctamente");
+} catch (error) {
+    console.error("Error al inicializar Firebase:", error.message);
+}
 
 export const postPedidos = async (req, res) => {
     const conexion = await conmysql.getConnection();
