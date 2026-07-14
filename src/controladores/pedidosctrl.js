@@ -64,7 +64,7 @@ export const postPedidos = async (req, res) => {
         await conexion.commit();
 
         try {
-            const tokenAdmin = "AQUI_VA_TU_TOKEN_FCM_REAL";
+            const tokenAdmin = "dckJtQjxR-qnH_4DIOcMWc:APA91bEnnE41sXLx3IWPNKYtjyYS-Sf_qbEIBWz1pxGszlFnM8u3VIEq56O0EshC0j11PgMRrTz-Islj9RcdvGxyB6IPd6MNzR0u4YYu8fWaJPl6cEf0rNo";
 
             const mensajePush = {
                 notification: {
