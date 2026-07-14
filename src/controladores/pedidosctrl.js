@@ -70,25 +70,33 @@ export const postPedidos = async (req, res) => {
         await conexion.commit();
 
         try {
-            const tokenAdmin = "dckJtQjxR-qnH_4DIOcMWc:APA91bEnnE41sXLx3IWPNKYtjyYS-Sf_qbEIBWz1pxGszlFnM8u3VIEq56O0EshC0j11PgMRrTz-Islj9RcdvGxyB6IPd6MNzR0u4YYu8fWaJPl6cEf0rNo";
+            const [admins] = await conmysql.query(
+                "SELECT fcm_token FROM usuarios WHERE usr_rol = 'admin' AND fcm_token IS NOT NULL"
+            );
 
-            const mensajePush = {
-                notification: {
-                    title: 'Nuevo Pedido',
-                    body: `El cliente ${cli_nombre} ha realizado un pedido`
-                },
-                data: {
-                    pedido_id: String(ped_id),
-                    type: 'nuevo_pedido'
-                },
-                token: tokenAdmin
-            };
+            if (admins.length === 0) {
+                console.log("No hay administradores con token FCM registrado");
+            } else {
+                for (const admin of admins) {
+                    const mensajePush = {
+                        notification: {
+                            title: 'Nuevo Pedido',
+                            body: `El cliente ${cli_nombre} ha realizado un pedido #${ped_id}`
+                        },
+                        data: {
+                            pedido_id: String(ped_id),
+                            type: 'nuevo_pedido'
+                        },
+                        token: admin.fcm_token
+                    };
 
-            await admin.messaging().send(mensajePush);
-            console.log("Notificacion enviada al Admin");
+                    await admin.messaging().send(mensajePush);
+                    console.log(`Notificación enviada a admin con token: ${admin.fcm_token.substring(0, 15)}...`);
+                }
+            }
 
         } catch (errorPush) {
-            console.error("La venta se guardo, pero fallo la notificacion:", errorPush.message);
+            console.error("La venta se guardó, pero falló la notificación:", errorPush.message);
         }
 
         res.status(201).json({

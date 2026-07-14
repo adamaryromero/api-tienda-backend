@@ -3,6 +3,7 @@ import cors from 'cors';
 import clientesRoutes from './routes/clientes.routes.js'
 import productosRoutes from './routes/productos.routes.js';
 import pedidosRoutes from './routes/pedidos.routes.js';
+import fcmRoutes from './routes/fcm.routes.js';
 
 const app=express();
 const corsOptions={
@@ -19,6 +20,7 @@ app.use('/api',clientesRoutes)
 app.use('/api', productosRoutes);
 app.use('/uploads', express.static('uploads'));
 app.use("/api", pedidosRoutes);
+app.use('/api', fcmRoutes);
 
 app.use((req,res,next)=>{
     res.status(400).json({

@@ -60,8 +60,8 @@ export const putProducto = async (req, res) => {
             ]
         );
 
-        if (result.affectedRows === 0 && !result.info.includes("Rows matched: 1")) {
-             return res.status(404).json({ message: "Producto no encontrado en la base de datos" });
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Producto no encontrado" });
         }
         
         res.json({ message: 'Producto actualizado con éxito' });

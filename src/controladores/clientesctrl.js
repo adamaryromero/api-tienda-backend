@@ -15,12 +15,10 @@ export const getclientesxid=
       async (req, res)=>{
         try{
             const[result]=await conmysql.query('select * from clientes where cli_id=?',[req.params.id]);
-            if(result.length<=0) return res.json({
-                cant:0,
-                message:"Cliente no encontrado"
-            })
-            res.json({cantidad:result.length, data:result[0]}
-            );
+            if (result.length === 0) {
+                return res.status(404).json({ ok: false, message: "Cliente no encontrado" });
+            }
+            res.json({ ok: true, data: result[0] });
         } catch(error){
             return res.status(500).json({message:"error en el servidor"});
         }
